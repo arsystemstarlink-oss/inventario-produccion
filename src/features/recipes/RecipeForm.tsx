@@ -7,6 +7,7 @@ import type {
   RecipeFormValues,
   RecipeIngredientValues,
   Supply,
+  SupplyDraft,
 } from '../../types'
 import { Button } from '../../components/Button'
 import { Input } from '../../components/Input'
@@ -24,6 +25,7 @@ import {
   formatPackageCount,
   packageCount,
 } from '../inventory/packaging'
+import { SupplyForm } from '../inventory/SupplyForm'
 import { hasErrors, toRecipeDraft, validateRecipe } from './validation'
 import { pickVisible, useTouchedFields } from '../../lib/touched'
 
@@ -45,6 +47,7 @@ type RecipeFormProps = {
   editing: Recipe | null
   onSave: (draft: RecipeDraft) => boolean
   onCancel: () => void
+  onCreateSupply?: (draft: SupplyDraft) => Supply | null
 }
 
 export function RecipeForm({
@@ -53,6 +56,7 @@ export function RecipeForm({
   editing,
   onSave,
   onCancel,
+  onCreateSupply,
 }: RecipeFormProps) {
   const [values, setValues] = useState<RecipeFormValues>(() =>
     editing
@@ -77,6 +81,7 @@ export function RecipeForm({
         }
       : { ...emptyValues, ingredients: [{ ...emptyRow }] },
   )
+  const [creatingForRow, setCreatingForRow] = useState<number | null>(null)
   const sectionRef = useRef<HTMLElement>(null)
   const { touch, isVisible, markSubmitted, reset } = useTouchedFields()
   const allErrors = validateRecipe(values, recipes, supplies, editing?.id)
@@ -179,7 +184,7 @@ export function RecipeForm({
         <div className="flex flex-col gap-1">
           <Input
             id="recipe-output"
-            label="Rendimiento (unidades)"
+            label="¿Cuántas unidades salen?"
             type="number"
             min="0"
             step="any"
@@ -196,7 +201,8 @@ export function RecipeForm({
             }
           />
           <p className="text-xs text-slate-500">
-            ¿Cuántas unidades salen de esta receta? Ejemplo: 20 panes.
+            ¿Cuántas unidades salen de esta receta? Ejemplo: 20 panes. Si no
+            tienes insumos, usa «Insumo nuevo» para crearlos aquí mismo.
           </p>
         </div>
 
@@ -235,16 +241,30 @@ export function RecipeForm({
                   <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                     Ingrediente {index + 1}
                   </span>
-                  <Button
-                    variant="ghost"
-                    className="gap-1.5 px-2 py-1 text-red-600 hover:bg-red-50 hover:text-red-700"
-                    aria-label={`Quitar ingrediente ${index + 1}`}
-                    disabled={values.ingredients.length === 1}
-                    onClick={() => removeIngredient(index)}
-                  >
-                    <Trash2 className="h-4 w-4" aria-hidden="true" />
-                    Quitar
-                  </Button>
+                  <div className="flex items-center gap-1">
+                    {onCreateSupply ? (
+                      <Button
+                        variant="ghost"
+                        className="gap-1 px-2 py-1 text-indigo-700 hover:bg-indigo-50"
+                        aria-label={`Crear un insumo para el ingrediente ${index + 1}`}
+                        disabled={creatingForRow === index}
+                        onClick={() => setCreatingForRow(index)}
+                      >
+                        <Plus className="h-4 w-4" aria-hidden="true" />
+                        Insumo nuevo
+                      </Button>
+                    ) : null}
+                    <Button
+                      variant="ghost"
+                      className="gap-1.5 px-2 py-1 text-red-600 hover:bg-red-50 hover:text-red-700"
+                      aria-label={`Quitar ingrediente ${index + 1}`}
+                      disabled={values.ingredients.length === 1}
+                      onClick={() => removeIngredient(index)}
+                    >
+                      <Trash2 className="h-4 w-4" aria-hidden="true" />
+                      Quitar
+                    </Button>
+                  </div>
                 </div>
                 <Select
                   id={`recipe-ingredient-${index}`}
@@ -317,6 +337,22 @@ export function RecipeForm({
                     si no es compatible.
                   </p>
                 )}
+                {onCreateSupply && creatingForRow === index ? (
+                  <SupplyForm
+                    supplies={supplies}
+                    editing={null}
+                    alwaysShowCancel
+                    onCancel={() => setCreatingForRow(null)}
+                    onSave={(draft) => {
+                      const created = onCreateSupply(draft)
+                      if (!created) return false
+                      updateIngredient(index, 'supplyId', created.id)
+                      updateIngredient(index, 'unit', created.unit)
+                      setCreatingForRow(null)
+                      return true
+                    }}
+                  />
+                ) : null}
               </div>
             )
           })}

@@ -5,6 +5,7 @@ import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { ErrorBanner } from '../../components/ErrorBanner'
 import { GuideBanner } from '../../components/GuideBanner'
 import { PageHeader } from '../../components/PageHeader'
+import { Toast } from '../../components/Toast'
 import { formatDate } from '../../lib/format'
 import { useInventory } from '../inventory/useInventory'
 import { useRecipes } from '../recipes/useRecipes'
@@ -20,6 +21,19 @@ export function ProductionPage() {
   const [pendingDelete, setPendingDelete] = useState<ProductionRecord | null>(
     null,
   )
+  const [notice, setNotice] = useState<{
+    id: number
+    message: string
+    undo?: () => void
+  } | null>(null)
+  const [prefill, setPrefill] = useState<{
+    key: number
+    recipeId: string
+    quantity: string
+  } | null>(null)
+
+  const showNotice = (message: string, undo?: () => void) =>
+    setNotice({ id: Date.now(), message, undo })
 
   const handleRegister: Parameters<typeof ProductionForm>[0]['onRegister'] = (
     draft,
@@ -66,8 +80,45 @@ export function ProductionPage() {
           delta: -ingredient.quantity,
         })),
       )
+    } else {
+      const deleted = pendingDelete
+      showNotice(
+        `Producción de "${deleted.recipeName}" eliminada.`,
+        () => {
+          const deducted = inventory.adjustStock(
+            deleted.consumed.map((ingredient) => ({
+              supplyId: ingredient.supplyId,
+              delta: -ingredient.quantity,
+            })),
+          )
+          if (!deducted) return
+          if (!production.restoreRecord(deleted)) {
+            inventory.adjustStock(
+              deleted.consumed.map((ingredient) => ({
+                supplyId: ingredient.supplyId,
+                delta: ingredient.quantity,
+              })),
+            )
+          }
+        },
+      )
     }
     setPendingDelete(null)
+  }
+
+  const handleRepeat = (record: ProductionRecord) => {
+    const recipe = recipesHook.recipes.find(
+      (item) => item.id === record.recipeId,
+    )
+    if (!recipe) {
+      showNotice('La receta de esa producción ya no existe.')
+      return
+    }
+    setPrefill({
+      key: Date.now(),
+      recipeId: recipe.id,
+      quantity: String(record.quantity),
+    })
   }
 
   const errors = [
@@ -119,13 +170,16 @@ export function ProductionPage() {
 
       <div className="grid gap-6 lg:grid-cols-[minmax(320px,440px)_1fr] lg:items-start">
         <ProductionForm
+          key={prefill?.key ?? 'new'}
           recipes={recipesHook.recipes}
           supplies={inventory.supplies}
           onRegister={handleRegister}
+          initialValues={prefill}
         />
         <ProductionTable
           records={production.records}
           onDelete={setPendingDelete}
+          onRepeat={handleRepeat}
         />
       </div>
 
@@ -133,6 +187,25 @@ export function ProductionPage() {
         recipes={recipesHook.recipes}
         supplies={inventory.supplies}
       />
+
+      {notice ? (
+        <Toast
+          key={notice.id}
+          message={notice.message}
+          onDismiss={() => setNotice(null)}
+          action={
+            notice.undo
+              ? {
+                  label: 'Deshacer',
+                  onClick: () => {
+                    notice.undo?.()
+                    setNotice(null)
+                  },
+                }
+              : undefined
+          }
+        />
+      ) : null}
 
       {pendingDelete ? (
         <ConfirmDialog

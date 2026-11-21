@@ -27,23 +27,60 @@ async function addSupply(
 ) {
   await user.type(screen.getByLabelText('Nombre del insumo'), name)
   await user.type(
-    screen.getByLabelText('Contenido por paquete'),
+    screen.getByLabelText('Cantidad por paquete'),
     input.packageSize,
   )
   if (input.unit) {
     await user.selectOptions(screen.getByLabelText('Unidad'), input.unit)
   }
-  await user.type(screen.getByLabelText('Paquetes disponibles'), input.packages)
-  await user.type(screen.getByLabelText('Costo por paquete ($)'), input.packageCost)
+  await user.type(screen.getByLabelText('Paquetes que tienes'), input.packages)
+  await user.type(screen.getByLabelText('¿Cuánto cuesta cada paquete? ($)'), input.packageCost)
   if (input.minPackages !== undefined) {
-    const minStock = screen.getByLabelText('Stock mínimo (paquetes)')
+    const minStock = screen.getByLabelText('Avisar cuando queden menos de (paquetes)')
     await user.clear(minStock)
     await user.type(minStock, input.minPackages)
   }
   await user.click(screen.getByRole('button', { name: 'Agregar insumo' }))
 }
 
+describe('inicio', () => {
+  it('muestra el resumen y los pasos al abrir la app', () => {
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <App />
+      </MemoryRouter>,
+    )
+
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Inicio' }),
+    ).toBeInTheDocument()
+    expect(screen.getByText('Tus primeros pasos')).toBeInTheDocument()
+    expect(
+      screen.getByText('Tus datos están en este dispositivo'),
+    ).toBeInTheDocument()
+  })
+})
+
 describe('flujo de inventario', () => {
+  it('suma y resta un paquete con deshacer', async () => {
+    const user = userEvent.setup()
+    renderApp()
+
+    await addSupply(user, 'Harina 000', {
+      packageSize: '500',
+      packages: '4',
+      packageCost: '1',
+    })
+
+    await user.click(
+      screen.getByRole('button', { name: 'Sumar un paquete de Harina 000' }),
+    )
+    expect(screen.getByText('5 paquetes')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Deshacer' }))
+    expect(screen.getByText('4 paquetes')).toBeInTheDocument()
+  })
+
   it('crea, edita y elimina insumos por paquete', async () => {
     const user = userEvent.setup()
     renderApp()
@@ -54,15 +91,15 @@ describe('flujo de inventario', () => {
     expect(
       screen.getByRole('heading', { level: 1, name: 'Inventario' }),
     ).toBeInTheDocument()
-    expect(screen.getByText('No hay insumos registrados.')).toBeInTheDocument()
+    expect(screen.getByText('Todavía no tienes insumos. Agrega el primero con el formulario.')).toBeInTheDocument()
     expect(
       screen.getByText('Paso 1 · Carga tus insumos'),
     ).toBeInTheDocument()
 
     await user.type(screen.getByLabelText('Nombre del insumo'), 'Harina 000')
-    await user.type(screen.getByLabelText('Contenido por paquete'), '500')
-    await user.type(screen.getByLabelText('Paquetes disponibles'), '4')
-    await user.type(screen.getByLabelText('Costo por paquete ($)'), '1')
+    await user.type(screen.getByLabelText('Cantidad por paquete'), '500')
+    await user.type(screen.getByLabelText('Paquetes que tienes'), '4')
+    await user.type(screen.getByLabelText('¿Cuánto cuesta cada paquete? ($)'), '1')
 
     expect(
       screen.getByText(/4 paquetes de 500 g = 2 kg/),
@@ -110,7 +147,7 @@ describe('flujo de inventario', () => {
     )
     dialog = screen.getByRole('dialog')
     await user.click(within(dialog).getByRole('button', { name: 'Eliminar' }))
-    expect(screen.getByText('No hay insumos registrados.')).toBeInTheDocument()
+    expect(screen.getByText('Todavía no tienes insumos. Agrega el primero con el formulario.')).toBeInTheDocument()
 
     expect(window.localStorage.getItem('inventory:supplies:v1')).toBe('[]')
   })
@@ -164,10 +201,10 @@ describe('flujo de recetas y producción', () => {
     expect(
       screen.getByRole('heading', { level: 1, name: 'Recetas' }),
     ).toBeInTheDocument()
-    expect(screen.getByText('No hay recetas registradas.')).toBeInTheDocument()
+    expect(screen.getByText('Todavía no tienes recetas. Crea la primera para poder producir.')).toBeInTheDocument()
 
     await user.type(screen.getByLabelText('Nombre de la receta'), 'Pan')
-    await user.type(screen.getByLabelText('Rendimiento (unidades)'), '20')
+    await user.type(screen.getByLabelText('¿Cuántas unidades salen?'), '20')
     await user.selectOptions(
       screen.getByLabelText('Insumo'),
       screen.getByRole('option', { name: /Harina 000/ }),
@@ -198,7 +235,7 @@ describe('flujo de recetas y producción', () => {
       screen.getByLabelText('Receta'),
       screen.getByRole('option', { name: /Pan \(rinde 20 unidades\)/ }),
     )
-    await user.type(screen.getByLabelText('Cantidad a producir'), '40')
+    await user.type(screen.getByLabelText('¿Cuántas unidades quieres producir?'), '40')
 
     expect(screen.getByText('1 kg')).toBeInTheDocument()
     expect(screen.getByText('2 kg')).toBeInTheDocument()
@@ -233,7 +270,7 @@ describe('flujo de recetas y producción', () => {
       screen.getByLabelText('Receta'),
       screen.getByRole('option', { name: /Pan \(rinde 20 unidades\)/ }),
     )
-    await user.type(screen.getByLabelText('Cantidad a producir'), '100')
+    await user.type(screen.getByLabelText('¿Cuántas unidades quieres producir?'), '100')
     await user.click(screen.getByRole('button', { name: 'Registrar producción' }))
 
     expect(

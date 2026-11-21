@@ -14,12 +14,14 @@ import { useRecipes } from './useRecipes'
 export function RecipesPage() {
   const {
     supplies,
+    createSupply,
     error: inventoryError,
     clearError: clearInventoryError,
   } = useInventory()
   const {
     recipes,
     addRecipe,
+    restoreRecipe,
     updateRecipe,
     removeRecipe,
     error,
@@ -27,12 +29,21 @@ export function RecipesPage() {
   } = useRecipes()
   const [editing, setEditing] = useState<Recipe | null>(null)
   const [pendingDelete, setPendingDelete] = useState<Recipe | null>(null)
-  const [notice, setNotice] = useState<{ id: number; message: string } | null>(
-    null,
-  )
+  const [notice, setNotice] = useState<{
+    id: number
+    message: string
+    undo?: () => void
+  } | null>(null)
   const dismissNotice = useCallback(() => setNotice(null), [])
 
-  const showNotice = (message: string) => setNotice({ id: Date.now(), message })
+  const showNotice = (message: string, undo?: () => void) =>
+    setNotice({ id: Date.now(), message, undo })
+
+  const focusForm = () => {
+    const input = document.getElementById('recipe-name')
+    input?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    input?.focus({ preventScroll: true })
+  }
 
   const handleSave = (draft: Parameters<typeof addRecipe>[0]) => {
     if (editing) {
@@ -50,11 +61,15 @@ export function RecipesPage() {
 
   const handleConfirmDelete = () => {
     if (!pendingDelete) return
-    const name = pendingDelete.name
-    const removed = removeRecipe(pendingDelete.id)
-    if (editing?.id === pendingDelete.id) setEditing(null)
+    const deleted = pendingDelete
+    const removed = removeRecipe(deleted.id)
+    if (editing?.id === deleted.id) setEditing(null)
     setPendingDelete(null)
-    if (removed) showNotice(`Receta "${name}" eliminada.`)
+    if (removed) {
+      showNotice(`Receta "${deleted.name}" eliminada.`, () =>
+        restoreRecipe(deleted),
+      )
+    }
   }
 
   return (
@@ -96,12 +111,14 @@ export function RecipesPage() {
           editing={editing}
           onSave={handleSave}
           onCancel={() => setEditing(null)}
+          onCreateSupply={createSupply}
         />
         <RecipeTable
           recipes={recipes}
           supplies={supplies}
           onEdit={setEditing}
           onDelete={setPendingDelete}
+          onCreate={focusForm}
         />
       </div>
 
@@ -110,6 +127,17 @@ export function RecipesPage() {
           key={notice.id}
           message={notice.message}
           onDismiss={dismissNotice}
+          action={
+            notice.undo
+              ? {
+                  label: 'Deshacer',
+                  onClick: () => {
+                    notice.undo?.()
+                    dismissNotice()
+                  },
+                }
+              : undefined
+          }
         />
       ) : null}
 

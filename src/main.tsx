@@ -11,3 +11,13 @@ createRoot(document.getElementById('root')!).render(
     </HashRouter>
   </StrictMode>,
 )
+
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker
+      .register(`${import.meta.env.BASE_URL}sw.js`)
+      .catch(() => {
+        // Sin service worker la app sigue funcionando, solo sin modo offline.
+      })
+  })
+}

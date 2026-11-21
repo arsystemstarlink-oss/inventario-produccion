@@ -34,6 +34,7 @@ type SupplyFormProps = {
   editing: Supply | null
   onSave: (draft: SupplyDraft) => boolean
   onCancel: () => void
+  alwaysShowCancel?: boolean
 }
 
 function buildSummary(
@@ -81,6 +82,7 @@ export function SupplyForm({
   editing,
   onSave,
   onCancel,
+  alwaysShowCancel = false,
 }: SupplyFormProps) {
   const [values, setValues] = useState<SupplyFormValues>(() =>
     editing
@@ -159,12 +161,12 @@ export function SupplyForm({
 
         <fieldset className="flex flex-col gap-2">
           <legend className="text-sm font-medium text-slate-700">
-            Presentación del paquete
+            ¿Cómo viene el paquete?
           </legend>
           <div className="grid gap-4 sm:grid-cols-2">
             <Input
               id="supply-package-size"
-              label="Contenido por paquete"
+              label="Cantidad por paquete"
               type="number"
               min="0"
               step="any"
@@ -204,12 +206,12 @@ export function SupplyForm({
 
         <fieldset className="flex flex-col gap-2">
           <legend className="text-sm font-medium text-slate-700">
-            Existencias
+            ¿Cuántos tienes?
           </legend>
           <div className="grid gap-4 sm:grid-cols-2">
             <Input
               id="supply-packages"
-              label="Paquetes disponibles"
+              label="Paquetes que tienes"
               type="number"
               min="0"
               step="any"
@@ -222,7 +224,7 @@ export function SupplyForm({
             />
             <Input
               id="supply-min-packages"
-              label="Stock mínimo (paquetes)"
+              label="Avisar cuando queden menos de (paquetes)"
               type="number"
               min="0"
               step="any"
@@ -237,13 +239,15 @@ export function SupplyForm({
             />
           </div>
           <p className="text-xs text-slate-500">
-            El stock mínimo se usa para las alertas y la lista de compras.
+            Te avisaremos y el insumo aparecerá en la lista de compras cuando
+            queden menos paquetes que esta cantidad. Déjalo en 0 si no quieres
+            avisos.
           </p>
         </fieldset>
 
         <Input
           id="supply-package-cost"
-          label="Costo por paquete ($)"
+          label="¿Cuánto cuesta cada paquete? ($)"
           type="number"
           min="0"
           step="any"
@@ -275,7 +279,7 @@ export function SupplyForm({
             )}
             {editing ? 'Guardar cambios' : 'Agregar insumo'}
           </Button>
-          {editing ? (
+          {editing || alwaysShowCancel ? (
             <Button variant="secondary" className="gap-1.5" onClick={onCancel}>
               <X className="h-4 w-4" aria-hidden="true" />
               Cancelar

@@ -16,20 +16,42 @@ export function InventoryPage() {
   const {
     supplies,
     addSupply,
+    restoreSupply,
     updateSupply,
     removeSupply,
+    adjustStock,
     error,
     clearError,
   } = useInventory()
   const [editing, setEditing] = useState<Supply | null>(null)
   const [pendingDelete, setPendingDelete] = useState<Supply | null>(null)
-  const [notice, setNotice] = useState<{ id: number; message: string } | null>(
-    null,
-  )
+  const [notice, setNotice] = useState<{
+    id: number
+    message: string
+    undo?: () => void
+  } | null>(null)
   const dismissNotice = useCallback(() => setNotice(null), [])
   const lowStockCount = lowStockSupplies(supplies).length
 
-  const showNotice = (message: string) => setNotice({ id: Date.now(), message })
+  const showNotice = (message: string, undo?: () => void) =>
+    setNotice({ id: Date.now(), message, undo })
+
+  const focusForm = () => {
+    const input = document.getElementById('supply-name')
+    input?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    input?.focus({ preventScroll: true })
+  }
+
+  const handleAdjust = (supply: Supply, packages: 1 | -1) => {
+    const size = supply.packageSize > 0 ? supply.packageSize : 1
+    const delta = packages * size
+    const applied = Math.max(delta, -supply.quantity)
+    if (applied === 0) return
+    if (!adjustStock([{ supplyId: supply.id, delta: applied }])) return
+    showNotice(`Stock de "${supply.name}" actualizado.`, () =>
+      adjustStock([{ supplyId: supply.id, delta: -applied }]),
+    )
+  }
 
   const handleSave = (draft: Parameters<typeof addSupply>[0]) => {
     if (editing) {
@@ -47,11 +69,15 @@ export function InventoryPage() {
 
   const handleConfirmDelete = () => {
     if (!pendingDelete) return
-    const name = pendingDelete.name
-    const removed = removeSupply(pendingDelete.id)
-    if (editing?.id === pendingDelete.id) setEditing(null)
+    const deleted = pendingDelete
+    const removed = removeSupply(deleted.id)
+    if (editing?.id === deleted.id) setEditing(null)
     setPendingDelete(null)
-    if (removed) showNotice(`Insumo "${name}" eliminado.`)
+    if (removed) {
+      showNotice(`Insumo "${deleted.name}" eliminado.`, () =>
+        restoreSupply(deleted),
+      )
+    }
   }
 
   return (
@@ -90,6 +116,8 @@ export function InventoryPage() {
           supplies={supplies}
           onEdit={setEditing}
           onDelete={setPendingDelete}
+          onAdjust={handleAdjust}
+          onCreate={focusForm}
         />
       </div>
 
@@ -100,6 +128,17 @@ export function InventoryPage() {
           key={notice.id}
           message={notice.message}
           onDismiss={dismissNotice}
+          action={
+            notice.undo
+              ? {
+                  label: 'Deshacer',
+                  onClick: () => {
+                    notice.undo?.()
+                    dismissNotice()
+                  },
+                }
+              : undefined
+          }
         />
       ) : null}
 

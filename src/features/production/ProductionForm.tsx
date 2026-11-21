@@ -4,7 +4,7 @@ import {
   ListChecks,
   Sparkles,
 } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import type {
   ProductionDraft,
@@ -38,20 +38,30 @@ type ProductionFormProps = {
   recipes: Recipe[]
   supplies: Supply[]
   onRegister: (draft: ProductionDraft) => boolean
+  initialValues?: ProductionFormValues | null
 }
 
 export function ProductionForm({
   recipes,
   supplies,
   onRegister,
+  initialValues = null,
 }: ProductionFormProps) {
-  const [values, setValues] = useState<ProductionFormValues>(emptyValues)
+  const [values, setValues] = useState<ProductionFormValues>(
+    initialValues ?? emptyValues,
+  )
+  const sectionRef = useRef<HTMLElement>(null)
   const { touch, isVisible, markSubmitted, reset } = useTouchedFields()
   const allErrors = validateProduction(values)
   const errors = pickVisible(allErrors, isVisible)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const { rate } = useExchangeRate()
+
+  useEffect(() => {
+    if (!initialValues) return
+    sectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [initialValues])
 
   const selectedRecipe =
     recipes.find((recipe) => recipe.id === values.recipeId) ?? null
@@ -136,7 +146,10 @@ export function ProductionForm({
   }
 
   return (
-    <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+    <section
+      ref={sectionRef}
+      className="scroll-mt-36 rounded-lg border border-slate-200 bg-white p-4 shadow-sm sm:p-5"
+    >
       <h2 className="flex items-center gap-2 text-base font-semibold text-slate-900">
         <Factory className="h-4 w-4 text-indigo-600" aria-hidden="true" />
         Registrar producción
@@ -182,7 +195,7 @@ export function ProductionForm({
 
         <Input
           id="production-quantity"
-          label="Cantidad a producir"
+          label="¿Cuántas unidades quieres producir?"
           suffix="unidades"
           type="number"
           min="0"

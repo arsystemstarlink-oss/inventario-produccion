@@ -48,7 +48,7 @@ export function ShoppingList({ supplies }: ShoppingListProps) {
                   Disponible
                 </th>
                 <th scope="col" className="px-4 py-2 text-right font-semibold">
-                  Stock mínimo
+                  Aviso en
                 </th>
                 <th scope="col" className="px-4 py-2 text-right font-semibold">
                   Comprar
@@ -77,7 +77,7 @@ export function ShoppingList({ supplies }: ShoppingListProps) {
                       {formatQuantity(supply.quantity, supply.unit)}
                     </span>
                   </td>
-                  <td data-label="Stock mínimo" className="px-4 py-2 text-right">
+                  <td data-label="Aviso en" className="px-4 py-2 text-right">
                     <span>{formatPackageCount(minPackageCount(supply))}</span>
                     <span className="block text-xs text-slate-500">
                       {formatQuantity(supply.minStock, supply.unit)}

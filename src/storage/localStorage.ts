@@ -48,7 +48,7 @@ function isUnit(value: unknown): value is Unit {
   return typeof value === 'string' && UNITS.includes(value as Unit)
 }
 
-function isSupply(value: unknown): value is Supply {
+export function isSupply(value: unknown): value is Supply {
   return (
     isObject(value) &&
     isNonEmptyString(value.id) &&
@@ -71,7 +71,7 @@ function isRecipeIngredient(value: unknown): value is RecipeIngredient {
   )
 }
 
-function isRecipe(value: unknown): value is Recipe {
+export function isRecipe(value: unknown): value is Recipe {
   return (
     isObject(value) &&
     isNonEmptyString(value.id) &&
@@ -94,7 +94,7 @@ function isConsumedIngredient(value: unknown): value is ConsumedIngredient {
   )
 }
 
-function isProductionRecord(value: unknown): value is ProductionRecord {
+export function isProductionRecord(value: unknown): value is ProductionRecord {
   return (
     isObject(value) &&
     isNonEmptyString(value.id) &&
@@ -181,7 +181,7 @@ function noStorage(): LoadResult<never> {
   }
 }
 
-function normalizeSupply(supply: Supply): Supply {
+export function normalizeSupply(supply: Supply): Supply {
   const minStock = (supply as { minStock?: unknown }).minStock
   const packageSize = (supply as { packageSize?: unknown }).packageSize
   const packageCost = (supply as { packageCost?: unknown }).packageCost

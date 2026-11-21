@@ -1,0 +1,99 @@
+@import 'tailwindcss';
+
+@layer base {
+  html {
+    font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    margin: 0;
+    background-color: #f8fafc;
+    color: #1e293b;
+    overflow-x: hidden;
+  }
+}
+
+@media (max-width: 47.9375rem) {
+  .stacked-table,
+  .stacked-table tbody,
+  .stacked-table tr,
+  .stacked-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .stacked-table thead {
+    display: none;
+  }
+
+  .stacked-table tbody {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .stacked-table tr {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.5rem;
+    padding: 0.75rem 1rem;
+    box-shadow: 0 1px 2px rgb(15 23 42 / 0.05);
+  }
+
+  .stacked-table tr:not(.bg-red-50) {
+    background-color: #fff;
+  }
+
+  .stacked-table tr.bg-red-50 {
+    border-color: #fecaca;
+  }
+
+  .stacked-table td {
+    padding: 0.3125rem 0;
+    text-align: right;
+  }
+
+  .stacked-table td::before {
+    content: attr(data-label);
+    float: left;
+    padding-top: 0.0625rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    line-height: 1.25rem;
+    color: #64748b;
+  }
+
+  .stacked-table td[data-primary] {
+    order: -1;
+    padding: 0 0 0.5rem;
+    margin-bottom: 0.375rem;
+    border-bottom: 1px solid #f1f5f9;
+    text-align: left;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #0f172a;
+    overflow-wrap: anywhere;
+  }
+
+  .stacked-table td[data-primary]::before {
+    content: none;
+  }
+
+  .stacked-table td.cell-stack {
+    text-align: left;
+  }
+
+  .stacked-table td.cell-stack::before {
+    float: none;
+    display: block;
+    margin-bottom: 0.125rem;
+  }
+
+  .stacked-table td.cell-actions::before {
+    float: none;
+    display: block;
+    margin-bottom: 0.375rem;
+  }
+}
